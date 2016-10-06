@@ -14,6 +14,8 @@
   <ul class=entries>
   {% for entry in entries %}
     <li><h2>{{ entry.title }}</h2>{{ entry.text|safe }}<br>{{ entry.timestamp }}
+        <br><form action="{{ url_for('remove_entry', id=entry.id) }}" method=post>
+            <input type=submit value="remove"></form>
   {% else %}
     <li><em>Unbelievable.  No entries here so far</em>
   {% endfor %}
