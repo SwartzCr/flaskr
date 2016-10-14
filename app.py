@@ -4,6 +4,9 @@ from flask import  Flask, request, session, g, redirect, url_for, abort, render_
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, User, Entry, Tag
+from werkzeug.contrib.atom import AtomFeed
+
+
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -123,3 +126,19 @@ def logout():
     session.pop('logged_in', None)
     flash('You were logged out')
     return redirect(url_for('show_entries'))
+
+@app.route('/<user>/feed.atom')
+def jam_feed(user):
+    feed = AtomFeed('jams', feed_url=request.url, url=request.url_root)
+    db = get_db()
+    user_exists = db.query(User.name).filter(User.name==user).all()
+    if not user_exists:
+        abort(404)
+    jams = db.query(Entry.title, Entry.text, Entry.name, Entry.tag, Entry.timestamp).filter(Entry.name==user).filter(Entry.tag=="jam").order_by(Entry.id.desc()).limit(2).all()
+    for jam in jams:
+        feed.add(jam.title,
+                content_type='html',
+                url=jam.text,
+                author=jam.name,
+                updated=jam.timestamp)
+    return feed.get_response()
