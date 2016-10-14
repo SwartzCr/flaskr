@@ -1,0 +1,24 @@
+{% block body %}
+  <ul class=filters>
+  {% if tags %}
+  <h2>Filter By:</h2>
+  <form action="{{url_for('show_entries')}}" method=post>
+      <input type=submit value="None"></form>
+    {% for tag in tags %}
+    <form action="{{url_for('show_entries', tag=tag) }}" method=post>
+        <input type=submit value={{ tag[0] }}></form>
+    {% endfor %}
+  {% endif %}
+  <ul class=entries>
+  {% for entry in entries %}
+    <li><h2>{{ entry.title }}</h2>{{ entry.text|safe }}<br>{{ entry.timestamp }}
+        {% if entry.tag %}<br>{{ entry.tag }} {% endif %}
+        {% if session.logged_in %}
+        <br><form action="{{ url_for('remove_entry', id=entry.id) }}" method=post>
+            <input type=submit value="remove"></form>
+        {% endif %}
+  {% else %}
+    <li><em>Unbelievable.  No entries here so far</em>
+  {% endfor %}
+  </ul>
+{% endblock %}

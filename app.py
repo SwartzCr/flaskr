@@ -3,7 +3,7 @@ import sqlite3
 from flask import  Flask, request, session, g, redirect, url_for, abort, render_template, flash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import Base, User, Entry
+from models import Base, User, Entry, Tag
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -19,18 +19,6 @@ def connect_db():
     session = DBSession()
     return session
 
-#def init_db():
-#    db = get_db()
-#    with app.open_resource('schema.sql', mode='r') as f:
-#        db.cursor().executescript(f.read())
-#    db.commit()
-#
-#@app.cli.command('initdb')
-#def initdb_command():
-#    """Initializes the database."""
-#    init_db()
-#    print 'Initialized the database.'
-
 def get_db():
     """Opens a new database connection if there is none yet for the
     current application context.
@@ -45,13 +33,17 @@ def close_db(error):
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def show_entries():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     db = get_db()
-    entries = db.query(Entry.title, Entry.text, Entry.timestamp, Entry.id).filter(Entry.name==session.get('username')).all()
-    return render_template('show_entries.html', entries=entries)
+    entries = db.query(Entry.title, Entry.text, Entry.timestamp, Entry.id, Entry.tag).filter(Entry.name==session.get('username')).order_by(Entry.id.desc())
+    if request.args.get('tag',''):
+        entries = entries.filter(Entry.tag==request.args.get('tag',''))
+    entries = entries.all()
+    tags = db.query(Tag.name).filter(Tag.username==session.get('username')).order_by(Tag.id.desc()).all()
+    return render_template('show_entries.html', entries=entries, tags=tags)
 
 @app.route('/signup', methods=['GET', 'POST'])
 def sign_up():
@@ -65,7 +57,7 @@ def sign_up():
         elif db.query(User).filter(User.name==request.form["username"]).all():
             error = "User already exists!!!"
         else:
-            new_user = User(name=request.form["username"], password=request.form["password"])
+            new_user = User(name=request.form["username"], password=request.form["password"], public=request.form["public"])
             db.add(new_user)
             db.commit()
             flash("You've created an account")
@@ -77,10 +69,18 @@ def add_entry():
     if not session.get('logged_in'):
         abort(401)
     db = get_db()
-    new_entry = Entry(title=request.form['title'], text=request.form['text'], name=session.get('username'))
+    tag = ""
+    if request.form['new_tag']:
+        new_tag = Tag(name=request.form['new_tag'], username=session.get('username'))
+        db.add(new_tag)
+        db.commit()
+        tag = request.form['new_tag']
+    if request.form.get('tag'):
+        tag = request.form['tag']
+    new_entry = Entry(title=request.form['title'], text=request.form['text'], name=session.get('username'), tag=tag)
     db.add(new_entry)
     db.commit()
-    flash('New entry was successfully eposted')
+    flash('New entry was successfully posted')
     return redirect(url_for('show_entries'))
 
 @app.route('/remove', methods=['POST'])
@@ -88,12 +88,14 @@ def remove_entry():
     if not session.get('logged_in'):
         abort(401)
     db = get_db()
-    db.delete(db.query(Entry).filter(Entry.id==[request.args.get("id", '')]).first())
+    db.delete(db.query(Entry).filter(Entry.id==request.args.get("id", '')).first())
     db.commit()
     return redirect(url_for('show_entries'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if session.get('logged_in'):
+        return redirect(url_for('show_entries'))
     error = None
     if request.method == 'POST':
         db = get_db()
@@ -101,7 +103,6 @@ def login():
             error = 'Username is required'
         elif not request.form['password']:
             error = 'Password is required'
-        #TODO check to make sure user exists otherwise we error
         elif not db.query(User).filter(User.name==request.form["username"]).first():
             error = "Sorry there is no user with that name"
         elif db.query(User.password).filter(User.name==request.form["username"]).first()[0] != request.form['password']:
@@ -111,7 +112,11 @@ def login():
             session['username'] = request.form['username']
             flash('You were logged in')
             return redirect(url_for('show_entries'))
-    return render_template('login.html', error=error)
+    db = get_db()
+    public_users = db.query(User.name).filter(User.public==1).all()
+    public_users = [user[0] for user in public_users]
+    entries = db.query(Entry.title, Entry.text, Entry.timestamp, Entry.id).filter(Entry.name.in_(public_users)).order_by(Entry.id.desc()).all()
+    return render_template('login.html', error=error, entries=entries)
 
 @app.route('/logout')
 def logout():
