@@ -15,6 +15,7 @@
         {% if entry.tag %}<br>{{ entry.tag }} {% endif %}
         {% if session.logged_in %}
         <br><form action="{{ url_for('remove_entry', id=entry.id) }}" method=post>
+            {{ form.csrf_token }}
             <input type=submit value="remove"></form>
         {% endif %}
   {% else %}

@@ -2,14 +2,18 @@
 {% block body %}
   {% if session.logged_in %}
     <form action="{{ url_for('add_entry') }}" method=post class=add-entry>
+        {{ form.csrf_token }}
       <dl>
-        <dt>Title:
-        <dd><input type=text size=30 name=title>
-        <dt>Text:
-        <dd><textarea name=text rows=5 cols=40></textarea>
-        <dt>Tag:
-        {% for tag in tags %}
-        <dd><input type=radio name="tag" value="{{ tag.name }}">{{ tag.name }}
+          <dt>{{ form.title.label }}
+          <dd>{{ form.title() }}
+          <dt>{{ form.text.label }}
+          <dd>{{ form.text() }}
+          <dt>{{ form.tags.label }}
+        {% for tag in form.tags %}
+        <tr>
+            <td>{{ tag }}</td>
+            <td>{{ tag.label }}</td>
+        </tr>
         {% endfor %}
         <dd><input type=radio name="tag" value="">Other <input type="text" name="new_tag" />
         <dd><input type=submit value=Share>

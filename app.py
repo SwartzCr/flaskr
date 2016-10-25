@@ -5,6 +5,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, User, Entry, Tag
 from werkzeug.contrib.atom import AtomFeed
+from forms import LoginForm, CommentSubmit, BaseForm
+from wtforms import RadioField
 
 
 
@@ -46,7 +48,10 @@ def show_entries():
         entries = entries.filter(Entry.tag==request.args.get('tag',''))
     entries = entries.all()
     tags = db.query(Tag.name).filter(Tag.username==session.get('username')).order_by(Tag.id.desc()).all()
-    return render_template('show_entries.html', entries=entries, tags=tags)
+    tags = [(str(tag[0]),str(tag[0])) for tag in tags]
+    form = CommentSubmit()
+    form.tags.choices = tags
+    return render_template('show_entries.html', entries=entries, tags=tags, form=form)
 
 @app.route('/signup', methods=['GET', 'POST'])
 def sign_up():
@@ -71,6 +76,8 @@ def sign_up():
 def add_entry():
     if not session.get('logged_in'):
         abort(401)
+    if not form.validate():
+        abort(405)
     db = get_db()
     tag = ""
     if request.form['new_tag']:
@@ -90,6 +97,8 @@ def add_entry():
 def remove_entry():
     if not session.get('logged_in'):
         abort(401)
+    if not form.validate():
+        abort(405)
     db = get_db()
     db.delete(db.query(Entry).filter(Entry.id==request.args.get("id", '')).first())
     db.commit()
@@ -101,6 +110,8 @@ def login():
         return redirect(url_for('show_entries'))
     error = None
     if request.method == 'POST':
+        if not form.validate():
+            abort(405)
         db = get_db()
         if not request.form['username']:
             error = 'Username is required'
@@ -119,7 +130,8 @@ def login():
     public_users = db.query(User.name).filter(User.public==1).all()
     public_users = [user[0] for user in public_users]
     entries = db.query(Entry.title, Entry.text, Entry.timestamp, Entry.id).filter(Entry.name.in_(public_users)).order_by(Entry.id.desc()).all()
-    return render_template('login.html', error=error, entries=entries)
+    form = LoginForm()
+    return render_template('login.html', error=error, entries=entries, form=form)
 
 @app.route('/logout')
 def logout():
