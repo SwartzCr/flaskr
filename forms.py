@@ -1,5 +1,4 @@
 from flask import session
-from flask_wtf import FlaskForm
 from wtforms.csrf.session import SessionCSRF
 from wtforms import StringField, BooleanField, Form, validators, RadioField
 
