@@ -106,8 +106,6 @@ def remove_entry():
     form = Remove(request.form, meta={'csrf_context': session})
     if not session.get('logged_in'):
         abort(401)
-    import ipdb
-    ipdb.set_trace()
     if not form.validate():
         abort(400)
     db = get_db()
