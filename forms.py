@@ -7,7 +7,6 @@ class BaseForm(Form):
     class Meta:
         csrf = True
         csrf_class = SessionCSRF
-        #TODO figure out how this works and why its not working?
         csrf_secret = 'CSRF_SECRET_KEY'
 
     @property
@@ -23,11 +22,9 @@ class SignupForm(LoginForm):
 
 class Remove(BaseForm):
     pass
-#class FilterBy(Form):
 
 class CommentSubmit(BaseForm):
-    title = StringField('title', [validators.InputRequired()])
-    text = StringField('text', [validators.InputRequired()])
-    #TODO figure out how to include radio buttons as taken from the database
+    title = StringField('Title:', [validators.InputRequired()])
+    text = StringField('Text:', [validators.InputRequired()])
     tags = RadioField("Tags:")
 
