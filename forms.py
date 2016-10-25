@@ -1,4 +1,5 @@
 from flask import session
+from flask_wtf import FlaskForm
 from wtforms.csrf.session import SessionCSRF
 from wtforms import StringField, BooleanField, Form, validators, RadioField
 
@@ -20,6 +21,8 @@ class LoginForm(BaseForm):
 class SignupForm(LoginForm):
     public = BooleanField('public', default=False)
 
+class Remove(BaseForm):
+    pass
 #class FilterBy(Form):
 
 class CommentSubmit(BaseForm):
